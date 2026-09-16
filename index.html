@@ -42,7 +42,7 @@
       position: absolute;
       top: 24px;
       left: 28px;
-      background: rgba(255, 255, 255, 0.92);
+      background: rgba(255, 255, 255, 0.94);
       backdrop-filter: blur(8px);
       padding: 12px 20px;
       border-radius: 16px;
@@ -85,13 +85,13 @@
     /* 드래그 핸들 손전등 */
     .flashlight-group {
       cursor: grab;
-      transition: filter 0.2s;
+      transition: filter 0.15s;
     }
     .flashlight-group:active {
       cursor: grabbing;
     }
     .flashlight-group:hover {
-      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.7));
+      filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.9));
     }
 
     /* 우측 컨트롤 및 대시보드 패널 */
@@ -101,10 +101,11 @@
       border-left: 1px solid #e2e8f0;
       display: flex;
       flex-direction: column;
-      padding: 32px 24px;
-      gap: 24px;
+      padding: 30px 24px;
+      gap: 20px;
       box-shadow: -4px 0 20px rgba(0, 0, 0, 0.03);
       z-index: 20;
+      overflow-y: auto;
     }
 
     .panel-header {
@@ -164,29 +165,38 @@
       padding: 12px;
       text-align: center;
       border: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
-    .current-val-box span {
+    .val-main {
       font-size: 14px;
       color: #64748b;
       font-weight: 600;
     }
-    .current-val-box strong {
+    .val-main strong {
       font-size: 28px;
       color: #2563eb;
       font-weight: 800;
       margin-left: 6px;
     }
+    .val-dir {
+      font-size: 12px;
+      color: #0284c7;
+      font-weight: 700;
+    }
 
-    /* 결과 카드들 */
+    /* 결과 카드 */
     .result-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 18px;
-      padding: 16px 20px;
+      padding: 16px 18px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+      border: 1px solid #e2e8f0;
     }
     .result-card .left {
       display: flex;
@@ -216,6 +226,7 @@
       font-size: 20px;
       font-weight: 800;
       color: #0f172a;
+      text-align: right;
     }
 
     /* 조도/에너지 박스 */
@@ -223,7 +234,7 @@
       background: #f8fafc;
       border: 1px solid #e2e8f0;
       border-radius: 18px;
-      padding: 20px;
+      padding: 18px;
       text-align: center;
     }
     .energy-header {
@@ -234,16 +245,16 @@
       font-weight: 700;
       color: #475569;
       text-align: left;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     .energy-val {
-      font-size: 38px;
+      font-size: 34px;
       font-weight: 900;
       color: #2563eb;
-      margin: 8px 0;
+      margin: 4px 0;
     }
     .energy-val small {
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       color: #64748b;
       margin-left: 4px;
@@ -256,19 +267,19 @@
       background: #e2e8f0;
       border-radius: 10px;
       overflow: hidden;
-      margin: 14px 0 16px 0;
+      margin: 12px 0 14px 0;
     }
     .meter-fill {
       height: 100%;
       background: linear-gradient(90deg, #60a5fa, #2563eb);
       border-radius: 10px;
-      transition: width 0.1s linear;
+      transition: width 0.1s ease-out;
     }
 
     .conclusion-msg {
       background: #eff6ff;
       border-radius: 12px;
-      padding: 10px 14px;
+      padding: 10px 12px;
       font-size: 12px;
       line-height: 1.5;
       font-weight: 600;
@@ -285,7 +296,7 @@
       <div class="badge-icon">💡</div>
       <div>
         <div class="badge-title">탐구 활동</div>
-        <div class="badge-sub">태양 고도에 따른 빛의 세기 비교하기</div>
+        <div class="badge-sub">태양 고도에 따른 그림자와 빛의 세기 비교하기</div>
       </div>
     </div>
 
@@ -294,7 +305,7 @@
         <!-- 빛 원뿔 그래디언트 -->
         <linearGradient id="beamGradient" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#fef08a" stop-opacity="0.8" />
-          <stop offset="60%" stop-color="#fef9c3" stop-opacity="0.4" />
+          <stop offset="60%" stop-color="#fef9c3" stop-opacity="0.38" />
           <stop offset="100%" stop-color="#fef08a" stop-opacity="0.75" />
         </linearGradient>
       </defs>
@@ -303,40 +314,42 @@
       <rect id="groundRect" fill="#d9e2ec" />
       <line id="groundLine" stroke="#cbd5e1" stroke-width="2" />
 
+      <!-- 동/서 방위 표시 -->
+      <text id="labelWest" font-size="14" font-weight="700" fill="#64748b">서 (오후)</text>
+      <text id="labelEast" font-size="14" font-weight="700" fill="#64748b">동 (오전)</text>
+
+      <!-- 전체 180도 반원 궤적 점선 -->
+      <path id="guideArc" fill="none" stroke="#93c5fd" stroke-width="2" stroke-dasharray="6,6" />
+
       <!-- 빛이 비추는 영역 (빛 원뿔) -->
       <polygon id="lightBeam" fill="url(#beamGradient)" />
 
       <!-- 지표면에 비춘 타원형 빛 패치 -->
-      <ellipse id="groundSpot" fill="#facc15" fill-opacity="0.6" />
-
-      <!-- 고도 궤적 점선 호 -->
-      <path id="guideArc" fill="none" stroke="#93c5fd" stroke-width="2" stroke-dasharray="6,6" />
+      <ellipse id="groundSpot" fill="#facc15" fill-opacity="0.55" />
 
       <!-- 각도 표시 호 및 텍스트 -->
       <path id="angleArc" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-dasharray="4,4" />
-      <text id="angleText" font-size="16" font-weight="bold" fill="#2563eb">90°</text>
+      <text id="angleText" font-size="15" font-weight="bold" fill="#2563eb">90°</text>
 
       <!-- 막대 그림자 -->
-      <line id="stickShadow" stroke="#475569" stroke-linecap="round" opacity="0.6" />
+      <line id="stickShadow" stroke="#475569" stroke-linecap="round" opacity="0.65" />
 
       <!-- 관측 막대 (중앙) -->
       <g id="stickGroup">
-        <!-- 막대 받침대 -->
-        <ellipse id="stickBase" rx="30" ry="7" fill="#334155" />
+        <ellipse id="stickBase" rx="32" ry="7" fill="#334155" />
         <ellipse id="sensorSpot" rx="18" ry="4.5" fill="#3b82f6" />
-        <!-- 수직 막대 -->
         <line id="stick" stroke="#ef4444" stroke-width="9" stroke-linecap="round" />
       </g>
 
-      <!-- 조작 가능한 손전등 (그룹) -->
+      <!-- 조작 가능한 손전등 (드래그 가능) -->
       <g id="flashlight" class="flashlight-group">
         <!-- 손전등 주변 빛 후광 -->
-        <circle r="36" fill="#fef08a" fill-opacity="0.3" stroke="#facc15" stroke-width="2" stroke-dasharray="4,4" />
-        <!-- 손전등 헤드/몸통 -->
+        <circle r="38" fill="#fef08a" fill-opacity="0.32" stroke="#facc15" stroke-width="2" stroke-dasharray="4,4" />
+        <!-- 손전등 본체 -->
         <path d="M -16,-28 L 16,-28 L 22,-8 L 12,-8 L 12,28 L -12,28 L -12,-8 L -22,-8 Z" fill="#334155" />
-        <!-- 렌즈 발광 부위 -->
+        <!-- 전면 발광 렌즈 -->
         <ellipse cx="0" cy="-28" rx="16" ry="4" fill="#fef08a" />
-        <circle cx="0" cy="0" r="4" fill="#60a5fa" />
+        <circle cx="0" cy="0" r="4" fill="#38bdf8" />
       </g>
     </svg>
   </div>
@@ -351,17 +364,21 @@
     <!-- 컨트롤 -->
     <div>
       <div class="section-label">
-        <span>⚙️</span> 고도 조절하기
+        <span>⚙️</span> 위치 및 고도 조절하기
       </div>
       <div class="control-card">
         <div class="slider-labels">
-          <span>낮음 (15°)</span>
-          <span>높음 (90°)</span>
+          <span>서쪽 (오후)</span>
+          <span>남중 (정오)</span>
+          <span>동쪽 (오전)</span>
         </div>
-        <input type="range" id="altSlider" class="range-input" min="15" max="90" step="1" value="90">
+        <!-- 15도(동쪽 낮음) ~ 90도(남중) ~ 165도(서쪽 낮음) -->
+        <input type="range" id="posSlider" class="range-input" min="15" max="165" step="1" value="90">
         <div class="current-val-box">
-          <span>현재 태양 고도:</span>
-          <strong id="displayAltitude">90</strong><strong>°</strong>
+          <div class="val-main">
+            현재 태양 고도: <strong id="displayAltitude">90</strong><strong>°</strong>
+          </div>
+          <div class="val-dir" id="displayDirection">남중 (가장 높음)</div>
         </div>
       </div>
     </div>
@@ -371,23 +388,25 @@
       <div class="section-label green">
         <span>📊</span> 관찰 결과
       </div>
-      <div style="display: flex; flex-direction: column; gap: 14px;">
+      <div style="display: flex; flex-direction: column; gap: 12px;">
         <!-- 그림자 길이 -->
         <div class="result-card">
           <div class="left">
             <div class="icon-box">📏</div>
             <div class="text">
               <div class="title">막대의 그림자 길이</div>
-              <div class="sub">고도가 높을수록 짧아짐</div>
+              <div class="sub" id="shadowDirText">고도가 높을수록 짧아짐</div>
             </div>
           </div>
-          <div class="val"><span id="shadowLen">0.0</span> <span style="font-size:14px; font-weight:600;">cm</span></div>
+          <div class="val">
+            <span id="shadowLen">0.0</span> <span style="font-size:13px; font-weight:600;">cm</span>
+          </div>
         </div>
 
         <!-- 태양 에너지 / 빛의 세기 -->
         <div class="energy-card">
           <div class="energy-header">
-            <span style="font-size: 18px;">💡</span> 지표면이 받는 에너지양<br>(센서가 받는 빛의 세기)
+            <span style="font-size: 18px;">💡</span> 지표면이 받는 에너지양<br>(단위 면적당 빛의 세기)
           </div>
           <div class="energy-val">
             <span id="luxVal">1,210</span><small>Lux</small>
@@ -396,7 +415,7 @@
             <div id="meterFill" class="meter-fill" style="width: 100%;"></div>
           </div>
           <div class="conclusion-msg" id="conclusionMsg">
-            태양 고도가 높아 빛이 좁은 면적에 집중되어 태양 에너지가 많습니다.
+            태양 고도가 높아 빛이 좁은 면적에 집중되어 태양 에너지양이 많습니다.
           </div>
         </div>
       </div>
@@ -408,6 +427,8 @@
     const svg = document.getElementById('simSvg');
     const groundRect = document.getElementById('groundRect');
     const groundLine = document.getElementById('groundLine');
+    const labelWest = document.getElementById('labelWest');
+    const labelEast = document.getElementById('labelEast');
     const lightBeam = document.getElementById('lightBeam');
     const groundSpot = document.getElementById('groundSpot');
     const guideArc = document.getElementById('guideArc');
@@ -420,26 +441,28 @@
     const sensorSpot = document.getElementById('sensorSpot');
     const flashlight = document.getElementById('flashlight');
 
-    const altSlider = document.getElementById('altSlider');
+    const posSlider = document.getElementById('posSlider');
     const displayAltitude = document.getElementById('displayAltitude');
+    const displayDirection = document.getElementById('displayDirection');
     const shadowLen = document.getElementById('shadowLen');
+    const shadowDirText = document.getElementById('shadowDirText');
     const luxVal = document.getElementById('luxVal');
     const meterFill = document.getElementById('meterFill');
     const conclusionMsg = document.getElementById('conclusionMsg');
 
-    // 상태 변수
-    let altitude = 90; // 기본 90도
+    // 상태 변수 (orbitAngle: 15도=동쪽 최저, 90도=남중, 165도=서쪽 최저)
+    let orbitAngle = 90; 
     let isDragging = false;
-    const stickRealHeightCm = 10.0; // 기준 막대 실제 크기 10cm
+    const stickRealHeightCm = 10.0; // 기준 막대 크기 10cm
 
-    // 레이아웃 기준 좌표 계산
+    // 기하학적 기준 좌표 계산
     function getGeometry() {
       const w = svg.clientWidth;
       const h = svg.clientHeight;
       const groundY = h * 0.76;
       const centerX = w * 0.5;
-      const arcRadius = Math.min(w * 0.4, h * 0.48);
-      const stickH = 150; // SVG 상 막대 높이
+      const arcRadius = Math.min(w * 0.42, h * 0.52);
+      const stickH = 145; // 화면상 막대 높이 px
 
       return { w, h, groundY, centerX, arcRadius, stickH };
     }
@@ -447,9 +470,13 @@
     // 렌더링 및 수치 업데이트
     function update() {
       const { w, h, groundY, centerX, arcRadius, stickH } = getGeometry();
-      const rad = (altitude * Math.PI) / 180;
+      const rad = (orbitAngle * Math.PI) / 180;
 
-      // 1. 지표면 위치 갱신
+      // 1. 실제 과학적 태양 고도(Altitude, 0~90°): 지평면과 이루는 예각
+      const altitude = orbitAngle <= 90 ? orbitAngle : (180 - orbitAngle);
+      const altRad = (altitude * Math.PI) / 180;
+
+      // 2. 지표면 및 방위 라벨
       groundRect.setAttribute('x', 0);
       groundRect.setAttribute('y', groundY);
       groundRect.setAttribute('width', w);
@@ -460,7 +487,12 @@
       groundLine.setAttribute('x2', w);
       groundLine.setAttribute('y2', groundY);
 
-      // 2. 막대 위치
+      labelWest.setAttribute('x', Math.max(20, centerX - arcRadius - 40));
+      labelWest.setAttribute('y', groundY + 28);
+      labelEast.setAttribute('x', Math.min(w - 70, centerX + arcRadius - 20));
+      labelEast.setAttribute('y', groundY + 28);
+
+      // 3. 막대 위치 고정
       stickBase.setAttribute('cx', centerX);
       stickBase.setAttribute('cy', groundY);
       sensorSpot.setAttribute('cx', centerX);
@@ -471,39 +503,44 @@
       stick.setAttribute('x2', centerX);
       stick.setAttribute('y2', groundY - stickH);
 
-      // 3. 손전등 위치 (원호 궤적)
-      // 각도: 오른쪽(동쪽) 0도 ~ 90도 (위쪽)
+      // 4. 손전등 위치 (180도 전체 반원 호)
       const flashX = centerX + arcRadius * Math.cos(rad);
       const flashY = groundY - arcRadius * Math.sin(rad);
 
-      // 손전등 회전 (중앙 바닥을 똑바로 비추도록 정렬)
-      const rotAngle = 90 - altitude;
+      // 손전등 렌즈가 중앙 막대 바닥(centerX, groundY)을 조준하도록 회전
+      // orbitAngle=90일 때 회전 0도, orbitAngle>90일 때 음의 각도
+      const rotAngle = 90 - orbitAngle;
       flashlight.setAttribute('transform', `translate(${flashX}, ${flashY}) rotate(${rotAngle})`);
 
-      // 4. 가이드 호 (Guide Arc)
+      // 5. 전체 180도 가이드 호 (Guide Arc: 동쪽에서 서쪽까지)
       const startArcX = centerX + arcRadius;
-      const guidePath = `M ${startArcX} ${groundY} A ${arcRadius} ${arcRadius} 0 0 0 ${centerX} ${groundY - arcRadius}`;
+      const endArcX = centerX - arcRadius;
+      const guidePath = `M ${startArcX} ${groundY} A ${arcRadius} ${arcRadius} 0 0 0 ${endArcX} ${groundY}`;
       guideArc.setAttribute('d', guidePath);
 
       // 각도 표시 호 (반경 70px)
       const aR = 70;
-      const aEndX = centerX + aR * Math.cos(rad);
-      const aEndY = groundY - aR * Math.sin(rad);
-      angleArc.setAttribute('d', `M ${centerX + aR} ${groundY} A ${aR} ${aR} 0 0 0 ${aEndX} ${aEndY}`);
+      const aX = centerX + aR * Math.cos(rad);
+      const aY = groundY - aR * Math.sin(rad);
 
-      // 각도 라벨 위치
-      const textAngleRad = (altitude / 2) * (Math.PI / 180);
-      angleText.setAttribute('x', centerX + (aR + 25) * Math.cos(textAngleRad));
-      angleText.setAttribute('y', groundY - (aR + 15) * Math.sin(textAngleRad));
+      if (orbitAngle <= 90) {
+        angleArc.setAttribute('d', `M ${centerX + aR} ${groundY} A ${aR} ${aR} 0 0 0 ${aX} ${aY}`);
+        const textMidRad = (orbitAngle / 2) * (Math.PI / 180);
+        angleText.setAttribute('x', centerX + (aR + 25) * Math.cos(textMidRad));
+        angleText.setAttribute('y', groundY - (aR + 12) * Math.sin(textMidRad));
+      } else {
+        angleArc.setAttribute('d', `M ${centerX - aR} ${groundY} A ${aR} ${aR} 0 0 1 ${aX} ${aY}`);
+        const textMidRad = (180 - altitude / 2) * (Math.PI / 180);
+        angleText.setAttribute('x', centerX + (aR + 32) * Math.cos(textMidRad));
+        angleText.setAttribute('y', groundY - (aR + 12) * Math.sin(textMidRad));
+      }
       angleText.textContent = `${Math.round(altitude)}°`;
 
-      // 5. 빛 퍼짐 (지표면에 닿는 면적)
-      // 고도가 낮을수록 빛의 타원이 길게 늘어남 (1 / sin(θ))
-      const beamHalfWidth = 28; // 손전등 발광 폭
-      const spotSpreadFactor = 1 / Math.sin(Math.max(rad, 0.25));
-      const groundSpotRx = Math.min(beamHalfWidth * spotSpreadFactor * 2.8, w * 0.45);
-      
-      // 손전등에서 바닥 타원 양 끝으로 뻗어나가는 빛의 삼각뿔 형태
+      // 6. 빛의 퍼짐 (면적): 고도가 낮을수록 타원이 넓어짐 (1 / sin(alt))
+      const beamHalfWidth = 26;
+      const spotSpreadFactor = 1 / Math.sin(Math.max(altRad, 0.22));
+      const groundSpotRx = Math.min(beamHalfWidth * spotSpreadFactor * 2.7, w * 0.46);
+
       lightBeam.setAttribute('points', `
         ${flashX},${flashY}
         ${centerX - groundSpotRx},${groundY}
@@ -515,40 +552,58 @@
       groundSpot.setAttribute('rx', groundSpotRx);
       groundSpot.setAttribute('ry', Math.max(8, groundSpotRx * 0.18));
 
-      // 6. 막대 그림자 계산 (반대편(왼쪽)으로 늘어남)
-      const shadowLengthSvg = stickH / Math.tan(rad);
+      // 7. 그림자 방향 및 길이 물리 반영
+      // 손전등이 동쪽(orbitAngle <= 90)이면 서쪽(-x)으로, 서쪽(orbitAngle > 90)이면 동쪽(+x)으로 생김
+      const shadowLengthSvg = altitude === 90 ? 0 : (stickH / Math.tan(altRad));
+      const shadowDir = orbitAngle <= 90 ? -1 : 1; // 반대 방향
+
       stickShadow.setAttribute('x1', centerX);
       stickShadow.setAttribute('y1', groundY);
-      stickShadow.setAttribute('x2', centerX - shadowLengthSvg);
+      stickShadow.setAttribute('x2', centerX + shadowDir * shadowLengthSvg);
       stickShadow.setAttribute('y2', groundY);
       stickShadow.setAttribute('stroke-width', 7);
 
-      // 7. 실측 비례 물리량 계산 및 UI 반영
-      // 실제 막대 그림자 길이 = stickRealHeightCm / tan(altitude)
-      const realShadowCm = stickRealHeightCm / Math.tan(rad);
+      // 8. 수치 계산 및 대시보드 갱신
+      const realShadowCm = altitude === 90 ? 0.0 : (stickRealHeightCm / Math.tan(altRad));
       shadowLen.textContent = realShadowCm.toFixed(1);
 
-      // 태양 에너지(Lux): Lambert's Cosine Law 비례 (I = I_max * sin(altitude))
+      if (orbitAngle < 85) {
+        shadowDirText.textContent = '그림자 방향: 서쪽 (오전)';
+      } else if (orbitAngle > 95) {
+        shadowDirText.textContent = '그림자 방향: 동쪽 (오후)';
+      } else {
+        shadowDirText.textContent = '남중: 그림자 길이 가장 짧음';
+      }
+
+      // 빛의 세기(Lux): 람베르트 코사인 법칙 비례
       const maxLux = 1210;
-      const minLux = 150;
-      const currentLux = Math.round(minLux + (maxLux - minLux) * Math.sin(rad));
+      const minLux = 180;
+      const currentLux = Math.round(minLux + (maxLux - minLux) * Math.sin(altRad));
       luxVal.textContent = currentLux.toLocaleString();
 
-      // 에너지 게이지 바
       const percent = ((currentLux - minLux) / (maxLux - minLux)) * 100;
       meterFill.style.width = `${Math.min(100, Math.max(12, percent))}%`;
 
-      // 슬라이더 및 고도 텍스트 동기화
-      altSlider.value = Math.round(altitude);
+      // 슬라이더 및 고도 텍스트
+      posSlider.value = Math.round(orbitAngle);
       displayAltitude.textContent = Math.round(altitude);
 
-      // 안내 문구 변경
+      // 방위 안내 문구
+      if (orbitAngle < 80) {
+        displayDirection.textContent = `동쪽 하늘 (오전 ${Math.round(6 + (orbitAngle / 90) * 6)}시 무렵)`;
+      } else if (orbitAngle > 100) {
+        displayDirection.textContent = `서쪽 하늘 (오후 ${Math.round(12 + ((orbitAngle - 90) / 90) * 6)}시 무렵)`;
+      } else {
+        displayDirection.textContent = `남중 고도 (낮 12시 정오)`;
+      }
+
+      // 결론 문구
       if (altitude >= 70) {
         conclusionMsg.textContent = '태양 고도가 높아 빛이 좁은 면적에 집중되어 태양 에너지양이 많습니다.';
         conclusionMsg.style.background = '#eff6ff';
         conclusionMsg.style.color = '#1d4ed8';
       } else if (altitude >= 40) {
-        conclusionMsg.textContent = '태양 고도가 알맞아 빛이 완만하게 퍼지며 에너지가 중간 정도입니다.';
+        conclusionMsg.textContent = '태양 고도가 완만하여 빛이 적당히 퍼지며 태양 에너지양이 보통입니다.';
         conclusionMsg.style.background = '#fefce8';
         conclusionMsg.style.color = '#a16207';
       } else {
@@ -558,7 +613,7 @@
       }
     }
 
-    // 드래그 좌표로부터 각도 계산
+    // 마우스/터치 드래그 각도 처리 (15° ~ 165°)
     function handlePointerMove(e) {
       if (!isDragging) return;
       const rect = svg.getBoundingClientRect();
@@ -572,16 +627,16 @@
       const dx = x - centerX;
       const dy = groundY - y;
 
-      if (dy <= 0) return; // 지표면 아래는 방지
+      if (dy <= 0) return; // 지표면 아래 방지
 
       let deg = Math.atan2(dy, dx) * (180 / Math.PI);
-      // 각도 범위 제한 (15° ~ 90°)
-      deg = Math.max(15, Math.min(90, deg));
-      altitude = deg;
+      // 왼쪽(165도) ~ 오른쪽(15도) 범위 제한
+      deg = Math.max(15, Math.min(165, deg));
+      orbitAngle = deg;
       update();
     }
 
-    // 마우스 및 터치 이벤트 연결
+    // 이벤트 리스너 등록
     flashlight.addEventListener('pointerdown', (e) => {
       isDragging = true;
       flashlight.setPointerCapture(e.pointerId);
@@ -592,15 +647,19 @@
     window.addEventListener('pointercancel', () => { isDragging = false; });
 
     // 슬라이더 조절 이벤트
-    altSlider.addEventListener('input', (e) => {
-      altitude = parseFloat(e.target.value);
+    posSlider.addEventListener('input', (e) => {
+      // 슬라이더는 왼쪽(서쪽)을 오른쪽 값으로 둘지, 직관적으로 동쪽(15) ~ 서쪽(165) 매핑
+      // 슬라이더 UI: [서쪽(165) <----> 동쪽(15)]
+      // 사용자가 슬라이더를 왼쪽으로 밀면 서쪽, 오른쪽으로 밀면 동쪽으로 가도록 반전 연계
+      const val = parseFloat(e.target.value);
+      orbitAngle = (180 - val); // 직관적으로 왼쪽=서쪽(165), 오른쪽=동쪽(15)
       update();
     });
 
     // 화면 리사이즈 대응
     window.addEventListener('resize', update);
 
-    // 초기 렌더링
+    // 초기 실행
     update();
   </script>
 </body>
