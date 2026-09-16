@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>태양 고도와 태양 에너지양 시뮬레이션</title>
+  <!-- Google Fonts: Noto Sans KR -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      display: flex;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #f0f4f9;
+      color: #333;
+    }
+
+    /* 좌측 시뮬레이션 영역 */
+    .sim-container {
+      flex: 1;
+      position: relative;
+      background: linear-gradient(180deg, #edf4fc 0%, #f8fbff 60%, #e6eff8 100%);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* 상단 왼쪽 안내 뱃지 */
+    .top-badge {
+      position: absolute;
+      top: 24px;
+      left: 28px;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(8px);
+      padding: 12px 20px;
+      border-radius: 16px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 10;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+    .badge-icon {
+      font-size: 22px;
+      background: #e9f2ff;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .badge-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .badge-sub {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* SVG 캔버스 */
+    #simSvg {
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+    }
+
+    /* 드래그 핸들 손전등 */
+    .flashlight-group {
+      cursor: grab;
+      transition: filter 0.2s;
+    }
+    .flashlight-group:active {
+      cursor: grabbing;
+    }
+    .flashlight-group:hover {
+      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.7));
+    }
+
+    /* 우측 컨트롤 및 대시보드 패널 */
+    .side-panel {
+      width: 380px;
+      background: #ffffff;
+      border-left: 1px solid #e2e8f0;
+      display: flex;
+      flex-direction: column;
+      padding: 32px 24px;
+      gap: 24px;
+      box-shadow: -4px 0 20px rgba(0, 0, 0, 0.03);
+      z-index: 20;
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-icon {
+      font-size: 28px;
+    }
+    .header-title {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.25;
+      color: #0f172a;
+    }
+
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #2563eb;
+      margin-bottom: 10px;
+    }
+    .section-label.green {
+      color: #16a34a;
+    }
+
+    /* 슬라이더 카드 */
+    .control-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 18px;
+    }
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    .range-input {
+      width: 100%;
+      accent-color: #2563eb;
+      cursor: pointer;
+      height: 6px;
+    }
+
+    .current-val-box {
+      margin-top: 14px;
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      border: 1px solid #e2e8f0;
+    }
+    .current-val-box span {
+      font-size: 14px;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .current-val-box strong {
+      font-size: 28px;
+      color: #2563eb;
+      font-weight: 800;
+      margin-left: 6px;
+    }
+
+    /* 결과 카드들 */
+    .result-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    }
+    .result-card .left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .result-card .icon-box {
+      width: 42px;
+      height: 42px;
+      background: #f1f5f9;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .result-card .text .title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #334155;
+    }
+    .result-card .text .sub {
+      font-size: 11px;
+      color: #94a3b8;
+    }
+    .result-card .val {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+    }
+
+    /* 조도/에너지 박스 */
+    .energy-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 20px;
+      text-align: center;
+    }
+    .energy-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 700;
+      color: #475569;
+      text-align: left;
+      margin-bottom: 12px;
+    }
+    .energy-val {
+      font-size: 38px;
+      font-weight: 900;
+      color: #2563eb;
+      margin: 8px 0;
+    }
+    .energy-val small {
+      font-size: 16px;
+      font-weight: 600;
+      color: #64748b;
+      margin-left: 4px;
+    }
+
+    /* 미터 바 */
+    .meter-bg {
+      width: 100%;
+      height: 10px;
+      background: #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 14px 0 16px 0;
+    }
+    .meter-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #60a5fa, #2563eb);
+      border-radius: 10px;
+      transition: width 0.1s linear;
+    }
+
+    .conclusion-msg {
+      background: #eff6ff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 12px;
+      line-height: 1.5;
+      font-weight: 600;
+      color: #1d4ed8;
+      word-break: keep-all;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 1. 시뮬레이션 인터랙션 화면 -->
+  <div class="sim-container" id="container">
+    <div class="top-badge">
+      <div class="badge-icon">💡</div>
+      <div>
+        <div class="badge-title">탐구 활동</div>
+        <div class="badge-sub">태양 고도에 따른 빛의 세기 비교하기</div>
+      </div>
+    </div>
+
+    <svg id="simSvg">
+      <defs>
+        <!-- 빛 원뿔 그래디언트 -->
+        <linearGradient id="beamGradient" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fef08a" stop-opacity="0.8" />
+          <stop offset="60%" stop-color="#fef9c3" stop-opacity="0.4" />
+          <stop offset="100%" stop-color="#fef08a" stop-opacity="0.75" />
+        </linearGradient>
+      </defs>
+
+      <!-- 지표면(땅) -->
+      <rect id="groundRect" fill="#d9e2ec" />
+      <line id="groundLine" stroke="#cbd5e1" stroke-width="2" />
+
+      <!-- 빛이 비추는 영역 (빛 원뿔) -->
+      <polygon id="lightBeam" fill="url(#beamGradient)" />
+
+      <!-- 지표면에 비춘 타원형 빛 패치 -->
+      <ellipse id="groundSpot" fill="#facc15" fill-opacity="0.6" />
+
+      <!-- 고도 궤적 점선 호 -->
+      <path id="guideArc" fill="none" stroke="#93c5fd" stroke-width="2" stroke-dasharray="6,6" />
+
+      <!-- 각도 표시 호 및 텍스트 -->
+      <path id="angleArc" fill="none" stroke="#3b82f6" stroke-width="2.5" stroke-dasharray="4,4" />
+      <text id="angleText" font-size="16" font-weight="bold" fill="#2563eb">90°</text>
+
+      <!-- 막대 그림자 -->
+      <line id="stickShadow" stroke="#475569" stroke-linecap="round" opacity="0.6" />
+
+      <!-- 관측 막대 (중앙) -->
+      <g id="stickGroup">
+        <!-- 막대 받침대 -->
+        <ellipse id="stickBase" rx="30" ry="7" fill="#334155" />
+        <ellipse id="sensorSpot" rx="18" ry="4.5" fill="#3b82f6" />
+        <!-- 수직 막대 -->
+        <line id="stick" stroke="#ef4444" stroke-width="9" stroke-linecap="round" />
+      </g>
+
+      <!-- 조작 가능한 손전등 (그룹) -->
+      <g id="flashlight" class="flashlight-group">
+        <!-- 손전등 주변 빛 후광 -->
+        <circle r="36" fill="#fef08a" fill-opacity="0.3" stroke="#facc15" stroke-width="2" stroke-dasharray="4,4" />
+        <!-- 손전등 헤드/몸통 -->
+        <path d="M -16,-28 L 16,-28 L 22,-8 L 12,-8 L 12,28 L -12,28 L -12,-8 L -22,-8 Z" fill="#334155" />
+        <!-- 렌즈 발광 부위 -->
+        <ellipse cx="0" cy="-28" rx="16" ry="4" fill="#fef08a" />
+        <circle cx="0" cy="0" r="4" fill="#60a5fa" />
+      </g>
+    </svg>
+  </div>
+
+  <!-- 2. 우측 제어 및 데이터 패널 -->
+  <div class="side-panel">
+    <div class="panel-header">
+      <div class="header-icon">☀️</div>
+      <div class="header-title">태양 고도와<br>태양 에너지양</div>
+    </div>
+
+    <!-- 컨트롤 -->
+    <div>
+      <div class="section-label">
+        <span>⚙️</span> 고도 조절하기
+      </div>
+      <div class="control-card">
+        <div class="slider-labels">
+          <span>낮음 (15°)</span>
+          <span>높음 (90°)</span>
+        </div>
+        <input type="range" id="altSlider" class="range-input" min="15" max="90" step="1" value="90">
+        <div class="current-val-box">
+          <span>현재 태양 고도:</span>
+          <strong id="displayAltitude">90</strong><strong>°</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- 관찰 결과 -->
+    <div>
+      <div class="section-label green">
+        <span>📊</span> 관찰 결과
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <!-- 그림자 길이 -->
+        <div class="result-card">
+          <div class="left">
+            <div class="icon-box">📏</div>
+            <div class="text">
+              <div class="title">막대의 그림자 길이</div>
+              <div class="sub">고도가 높을수록 짧아짐</div>
+            </div>
+          </div>
+          <div class="val"><span id="shadowLen">0.0</span> <span style="font-size:14px; font-weight:600;">cm</span></div>
+        </div>
+
+        <!-- 태양 에너지 / 빛의 세기 -->
+        <div class="energy-card">
+          <div class="energy-header">
+            <span style="font-size: 18px;">💡</span> 지표면이 받는 에너지양<br>(센서가 받는 빛의 세기)
+          </div>
+          <div class="energy-val">
+            <span id="luxVal">1,210</span><small>Lux</small>
+          </div>
+          <div class="meter-bg">
+            <div id="meterFill" class="meter-fill" style="width: 100%;"></div>
+          </div>
+          <div class="conclusion-msg" id="conclusionMsg">
+            태양 고도가 높아 빛이 좁은 면적에 집중되어 태양 에너지가 많습니다.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM 요소
+    const svg = document.getElementById('simSvg');
+    const groundRect = document.getElementById('groundRect');
+    const groundLine = document.getElementById('groundLine');
+    const lightBeam = document.getElementById('lightBeam');
+    const groundSpot = document.getElementById('groundSpot');
+    const guideArc = document.getElementById('guideArc');
+    const angleArc = document.getElementById('angleArc');
+    const angleText = document.getElementById('angleText');
+    const stickShadow = document.getElementById('stickShadow');
+    const stickGroup = document.getElementById('stickGroup');
+    const stick = document.getElementById('stick');
+    const stickBase = document.getElementById('stickBase');
+    const sensorSpot = document.getElementById('sensorSpot');
+    const flashlight = document.getElementById('flashlight');
+
+    const altSlider = document.getElementById('altSlider');
+    const displayAltitude = document.getElementById('displayAltitude');
+    const shadowLen = document.getElementById('shadowLen');
+    const luxVal = document.getElementById('luxVal');
+    const meterFill = document.getElementById('meterFill');
+    const conclusionMsg = document.getElementById('conclusionMsg');
+
+    // 상태 변수
+    let altitude = 90; // 기본 90도
+    let isDragging = false;
+    const stickRealHeightCm = 10.0; // 기준 막대 실제 크기 10cm
+
+    // 레이아웃 기준 좌표 계산
+    function getGeometry() {
+      const w = svg.clientWidth;
+      const h = svg.clientHeight;
+      const groundY = h * 0.76;
+      const centerX = w * 0.5;
+      const arcRadius = Math.min(w * 0.4, h * 0.48);
+      const stickH = 150; // SVG 상 막대 높이
+
+      return { w, h, groundY, centerX, arcRadius, stickH };
+    }
+
+    // 렌더링 및 수치 업데이트
+    function update() {
+      const { w, h, groundY, centerX, arcRadius, stickH } = getGeometry();
+      const rad = (altitude * Math.PI) / 180;
+
+      // 1. 지표면 위치 갱신
+      groundRect.setAttribute('x', 0);
+      groundRect.setAttribute('y', groundY);
+      groundRect.setAttribute('width', w);
+      groundRect.setAttribute('height', h - groundY);
+
+      groundLine.setAttribute('x1', 0);
+      groundLine.setAttribute('y1', groundY);
+      groundLine.setAttribute('x2', w);
+      groundLine.setAttribute('y2', groundY);
+
+      // 2. 막대 위치
+      stickBase.setAttribute('cx', centerX);
+      stickBase.setAttribute('cy', groundY);
+      sensorSpot.setAttribute('cx', centerX);
+      sensorSpot.setAttribute('cy', groundY);
+
+      stick.setAttribute('x1', centerX);
+      stick.setAttribute('y1', groundY);
+      stick.setAttribute('x2', centerX);
+      stick.setAttribute('y2', groundY - stickH);
+
+      // 3. 손전등 위치 (원호 궤적)
+      // 각도: 오른쪽(동쪽) 0도 ~ 90도 (위쪽)
+      const flashX = centerX + arcRadius * Math.cos(rad);
+      const flashY = groundY - arcRadius * Math.sin(rad);
+
+      // 손전등 회전 (중앙 바닥을 똑바로 비추도록 정렬)
+      const rotAngle = 90 - altitude;
+      flashlight.setAttribute('transform', `translate(${flashX}, ${flashY}) rotate(${rotAngle})`);
+
+      // 4. 가이드 호 (Guide Arc)
+      const startArcX = centerX + arcRadius;
+      const guidePath = `M ${startArcX} ${groundY} A ${arcRadius} ${arcRadius} 0 0 0 ${centerX} ${groundY - arcRadius}`;
+      guideArc.setAttribute('d', guidePath);
+
+      // 각도 표시 호 (반경 70px)
+      const aR = 70;
+      const aEndX = centerX + aR * Math.cos(rad);
+      const aEndY = groundY - aR * Math.sin(rad);
+      angleArc.setAttribute('d', `M ${centerX + aR} ${groundY} A ${aR} ${aR} 0 0 0 ${aEndX} ${aEndY}`);
+
+      // 각도 라벨 위치
+      const textAngleRad = (altitude / 2) * (Math.PI / 180);
+      angleText.setAttribute('x', centerX + (aR + 25) * Math.cos(textAngleRad));
+      angleText.setAttribute('y', groundY - (aR + 15) * Math.sin(textAngleRad));
+      angleText.textContent = `${Math.round(altitude)}°`;
+
+      // 5. 빛 퍼짐 (지표면에 닿는 면적)
+      // 고도가 낮을수록 빛의 타원이 길게 늘어남 (1 / sin(θ))
+      const beamHalfWidth = 28; // 손전등 발광 폭
+      const spotSpreadFactor = 1 / Math.sin(Math.max(rad, 0.25));
+      const groundSpotRx = Math.min(beamHalfWidth * spotSpreadFactor * 2.8, w * 0.45);
+      
+      // 손전등에서 바닥 타원 양 끝으로 뻗어나가는 빛의 삼각뿔 형태
+      lightBeam.setAttribute('points', `
+        ${flashX},${flashY}
+        ${centerX - groundSpotRx},${groundY}
+        ${centerX + groundSpotRx},${groundY}
+      `);
+
+      groundSpot.setAttribute('cx', centerX);
+      groundSpot.setAttribute('cy', groundY);
+      groundSpot.setAttribute('rx', groundSpotRx);
+      groundSpot.setAttribute('ry', Math.max(8, groundSpotRx * 0.18));
+
+      // 6. 막대 그림자 계산 (반대편(왼쪽)으로 늘어남)
+      const shadowLengthSvg = stickH / Math.tan(rad);
+      stickShadow.setAttribute('x1', centerX);
+      stickShadow.setAttribute('y1', groundY);
+      stickShadow.setAttribute('x2', centerX - shadowLengthSvg);
+      stickShadow.setAttribute('y2', groundY);
+      stickShadow.setAttribute('stroke-width', 7);
+
+      // 7. 실측 비례 물리량 계산 및 UI 반영
+      // 실제 막대 그림자 길이 = stickRealHeightCm / tan(altitude)
+      const realShadowCm = stickRealHeightCm / Math.tan(rad);
+      shadowLen.textContent = realShadowCm.toFixed(1);
+
+      // 태양 에너지(Lux): Lambert's Cosine Law 비례 (I = I_max * sin(altitude))
+      const maxLux = 1210;
+      const minLux = 150;
+      const currentLux = Math.round(minLux + (maxLux - minLux) * Math.sin(rad));
+      luxVal.textContent = currentLux.toLocaleString();
+
+      // 에너지 게이지 바
+      const percent = ((currentLux - minLux) / (maxLux - minLux)) * 100;
+      meterFill.style.width = `${Math.min(100, Math.max(12, percent))}%`;
+
+      // 슬라이더 및 고도 텍스트 동기화
+      altSlider.value = Math.round(altitude);
+      displayAltitude.textContent = Math.round(altitude);
+
+      // 안내 문구 변경
+      if (altitude >= 70) {
+        conclusionMsg.textContent = '태양 고도가 높아 빛이 좁은 면적에 집중되어 태양 에너지양이 많습니다.';
+        conclusionMsg.style.background = '#eff6ff';
+        conclusionMsg.style.color = '#1d4ed8';
+      } else if (altitude >= 40) {
+        conclusionMsg.textContent = '태양 고도가 알맞아 빛이 완만하게 퍼지며 에너지가 중간 정도입니다.';
+        conclusionMsg.style.background = '#fefce8';
+        conclusionMsg.style.color = '#a16207';
+      } else {
+        conclusionMsg.textContent = '태양 고도가 낮아 빛이 넓게 분산되어 단위 면적당 태양 에너지양이 적습니다.';
+        conclusionMsg.style.background = '#fef2f2';
+        conclusionMsg.style.color = '#b91c1c';
+      }
+    }
+
+    // 드래그 좌표로부터 각도 계산
+    function handlePointerMove(e) {
+      if (!isDragging) return;
+      const rect = svg.getBoundingClientRect();
+      const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+      const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+
+      const x = clientX - rect.left;
+      const y = clientY - rect.top;
+
+      const { groundY, centerX } = getGeometry();
+      const dx = x - centerX;
+      const dy = groundY - y;
+
+      if (dy <= 0) return; // 지표면 아래는 방지
+
+      let deg = Math.atan2(dy, dx) * (180 / Math.PI);
+      // 각도 범위 제한 (15° ~ 90°)
+      deg = Math.max(15, Math.min(90, deg));
+      altitude = deg;
+      update();
+    }
+
+    // 마우스 및 터치 이벤트 연결
+    flashlight.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      flashlight.setPointerCapture(e.pointerId);
+    });
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', () => { isDragging = false; });
+    window.addEventListener('pointercancel', () => { isDragging = false; });
+
+    // 슬라이더 조절 이벤트
+    altSlider.addEventListener('input', (e) => {
+      altitude = parseFloat(e.target.value);
+      update();
+    });
+
+    // 화면 리사이즈 대응
+    window.addEventListener('resize', update);
+
+    // 초기 렌더링
+    update();
+  </script>
+</body>
+</html>
